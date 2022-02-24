@@ -31,6 +31,7 @@ void kernel_main() {
     multiboot_init();
 
     printk("HeLL OS loaded.\n");
+    panic("!!");
 
     dump_mmap();
 }
