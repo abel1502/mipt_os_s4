@@ -92,6 +92,9 @@ void vprintk(const char* fmt, va_list args) {
                 break;
             case 's':
                 str = va_arg(args, char*);
+                if (!str) {
+                    str = "(null)";
+                }
                 vga_writestring_color(str, color);
                 size = 0;
                 break;
