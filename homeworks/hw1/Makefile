@@ -7,6 +7,21 @@ LD_FLAGS=
 OBJCOPY=objcopy
 GRUB_MKRESCUE=grub-mkrescue
 
+all: .git/hooks/post-checkout qemu
+
+define POST_CHECKOUT
+#!/bin/sh -x
+make clean
+endef
+export POST_CHECKOUT
+
+.git/hooks/post-checkout:
+	@echo "$$POST_CHECKOUT" > $@
+	@chmod +x $@
+
+update:
+	../tools/update.sh
+
 image: build
 	mkdir -p isodir/boot/grub
 	cp grub.cfg isodir/boot/grub
@@ -28,4 +43,21 @@ clean:
 	rm -f kernel.iso
 	rm -f kernel.bin
 
-.PHONY: build clean
+QEMU = qemu-system-x86_64
+# TODO?: -monitor stdio
+# TODO: add a disk drive
+QEMUOPTS = -cdrom kernel.iso -monitor stdio
+
+qemu: image
+	$(QEMU) $(QEMUOPTS)
+
+qemu-gdb: image
+	$(QEMU) $(QEMUOPTS) -s -S
+
+qemu-nox: image
+	$(QEMU) $(QEMUOPTS) -display none
+
+qemu-gdb-nox: image
+	$(QEMU) $(QEMUOPTS) -s -S -display none
+
+.PHONY: all build clean update qemu qemu-gdb qemu-nox qemu-gdb-nox
