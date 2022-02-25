@@ -48,6 +48,9 @@
 # kernel_main symbol is declared outside this file.
 .extern kernel_main
 
+// uint32_t
+.extern mutliboot_info_physaddr
+
 .section .text
     # _start is an entry point of our kernel, execution after bootloader starts here.
     .global _start
@@ -56,10 +59,8 @@
     # Tell assembler, that we are running 32-bit protected mode.
     .code32
         # Our kernel just loaded, current processor state is described in "I386 machine state" section of Multiboot2 specification.
-
-        # TODO: here you need remember pointer to Multiboot2 information structure and later pass it to the multiboot_init() function.
-        # It's up to you how to save pointer: you can use stack, register or store it in .data section.
-
+        // We save it immediately
+        mov mutliboot_info_physaddr, ebx
 
         # To enable long mode, we need to setup basic paging.
         # Here we setup identity mapping for the first gigabyte.
