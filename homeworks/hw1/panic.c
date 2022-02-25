@@ -12,8 +12,9 @@ void __panic(const char *location, const char *msg, ...) {
     if (msg) {
         vprintk(msg, args);
     } else {
-        printk("(no message)");
+        printk("(null msg)");
     }
+    printk("\n");
     va_end(args);
 
     asm volatile (
