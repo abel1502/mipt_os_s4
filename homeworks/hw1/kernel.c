@@ -34,5 +34,11 @@ void kernel_main() {
 
     dump_mmap();
 
+    #if 0  // VGA scrolling test
+    for (unsigned i = 0; i < 26; ++i) {
+        printk("> %u\n", i);
+    }
+    #endif
+
     panic("Terminated");
 }
