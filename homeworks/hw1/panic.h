@@ -14,3 +14,5 @@ void __panic(const char *location, const char *msg, ...);
 
 #define BUG_ON(expr) if (expr) { panic("bug: '%s'", #expr); }
 #define BUG_ON_NULL(expr) BUG_ON(expr == NULL)
+
+#define static_assert _Static_assert
