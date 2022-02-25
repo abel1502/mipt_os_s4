@@ -52,7 +52,28 @@ void multiboot_init() {
 }
 
 void multiboot_mmap_iter_init(struct multiboot_mmap_iter *it) {
+    BUG_ON_NULL(it);
+
+    BUG_ON(!multiboot_parsed_info.inited);
+
+    it->entry_size = multiboot_parsed_info.mmap_tag->entry_size;
+    it->remainig_size = multiboot_parsed_info.mmap_tag->header.size - sizeof(struct multiboot_info_tag_mmap);
+    it->entry = (struct multiboot_mmap_entry *)
+        multiboot_parsed_info.mmap_tag->entries_storage;
 }
 
 struct multiboot_mmap_entry *multiboot_mmap_iter_next(struct multiboot_mmap_iter *it) {
+    BUG_ON_NULL(it);
+    BUG_ON(it->remainig_size % 8 != 0);
+
+    if (it->remainig_size == 0) {
+        return NULL;
+    }
+
+    struct multiboot_mmap_entry *cur_entry = it->entry;
+
+    it->remainig_size -= it->entry_size;
+    it->entry = (struct multiboot_mmap_entry *)(((u8 *)it->entry) + it->entry_size);
+
+    return cur_entry;
 }

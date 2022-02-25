@@ -66,6 +66,9 @@ extern uint32_t multiboot_info_physaddr;
 void multiboot_init();
 
 struct multiboot_mmap_iter {
+    u32 entry_size;
+    u32 remainig_size;
+    struct multiboot_mmap_entry *entry;
 };
 
 // multiboot_mmap_iter_init creates new iterator over memory map regions provided by bootloader.
