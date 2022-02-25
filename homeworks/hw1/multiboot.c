@@ -14,7 +14,7 @@ static struct {
 
 
 void multiboot_init() {
-    multiboot_info = (struct multiboot_info_header *)mutliboot_info_physaddr;
+    multiboot_info = (struct multiboot_info_header *)(size_t)mutliboot_info_physaddr;
 
     BUG_ON(multiboot_info->total_size < sizeof(struct multiboot_info_tag_end));
 
