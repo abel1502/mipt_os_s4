@@ -27,11 +27,26 @@ void vga_putentryat(char c, u8 color, u64 row, u64 col) {
     vga_buffer[vga_index(row, col)] = vga_entry(c, color);
 }
 
-// TODO: vga_newline_and_return should support terminal scrolling.
 static void vga_newline_and_return() {
     vga_row++;
     if (vga_row == VGA_HEIGHT) {
-        vga_row = 0;
+        // We scroll the terminal
+        for (u64 cur_row = 1; cur_row < VGA_HEIGHT; ++cur_row) {
+            // While not ideal, I'd say discarding volatile is fine here,
+            // since we do not really care about the order of there operations...
+            memcpy((void *)&vga_buffer[vga_index(cur_row - 1, 0)],
+                   (void *)&vga_buffer[vga_index(cur_row,     0)],
+                   VGA_WIDTH * sizeof(vga_buffer[0]));
+        }
+
+        volatile u16 *cur_cell = &vga_buffer[vga_index(VGA_HEIGHT - 1, 0)];
+        const u16 entry = vga_entry(' ', vga_entry_color(VGA_COLOR_LIGHT_GREY,
+                                                         VGA_COLOR_BLACK));
+        for (unsigned cur_col = 0; cur_col < VGA_WIDTH; ++cur_col, ++cur_cell) {
+            *cur_cell = entry;
+        }
+
+        vga_row--;
     }
     vga_column = 0;
 }
