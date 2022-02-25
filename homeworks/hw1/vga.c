@@ -5,7 +5,7 @@ static const u64 VGA_HEIGHT = 25;
 
 static u64 vga_row;
 static u64 vga_column;
-static volatile u16* vga_buffer;
+static volatile u16 *vga_buffer;
 
 static inline u64 vga_index(u64 row, u64 col) {
     return row * VGA_WIDTH + col;
@@ -55,16 +55,17 @@ void vga_putchar_color(char c, u8 color) {
     }
 }
 
-void vga_write(const char* data, size_t size, u8 color) {
+void vga_write(const char *data, size_t size, u8 color) {
     for (u64 i = 0; i < size; i++) {
         vga_putchar_color(data[i], color);
     }
 }
 
-void vga_writestring(const char* data) {
-    vga_write(data, strlen(data), vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
+void vga_writestring(const char *data) {
+    vga_write(data, strlen(data),
+              vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
 }
 
-void vga_writestring_color(const char* data, u8 color) {
+void vga_writestring_color(const char *data, u8 color) {
     vga_write(data, strlen(data), color);
 }

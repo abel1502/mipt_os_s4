@@ -31,6 +31,6 @@ static inline u16 vga_entry(unsigned char uc, u8 color) {
 }
 
 void vga_init();
-void vga_write(const char* data, size_t size, u8 color);
-void vga_writestring(const char* data);
-void vga_writestring_color(const char* data, u8 color);
+void vga_write(const char *data, size_t size, u8 color);
+void vga_writestring(const char *data);
+void vga_writestring_color(const char *data, u8 color);

@@ -29,10 +29,10 @@ struct multiboot_mmap_iter {
 };
 
 // multiboot_mmap_iter_init creates new iterator over memory map regions provided by bootloader.
-void multiboot_mmap_iter_init(struct multiboot_mmap_iter* it);
+void multiboot_mmap_iter_init(struct multiboot_mmap_iter *it);
 
 // multiboot_mmap_iter_next should return next memory region from given iterator.
 // If there are no more regions, return NULL instead.
-struct multiboot_mmap_entry* multiboot_mmap_iter_next(struct multiboot_mmap_iter* it);
+struct multiboot_mmap_entry *multiboot_mmap_iter_next(struct multiboot_mmap_iter *it);
 
 #endif
