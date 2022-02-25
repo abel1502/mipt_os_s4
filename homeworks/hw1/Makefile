@@ -2,7 +2,9 @@ AS=x86_64-elf-gcc
 CC=x86_64-elf-gcc
 LD=x86_64-elf-gcc
 AS_FLAGS=-c -g
-CC_FLAGS=-mno-mmx -mno-sse -mno-sse2 -fno-pie -c -g -mno-red-zone -std=gnu99 -ffreestanding -Wall -Wextra
+# Added -Werror just in case
+CC_FLAGS=-mno-mmx -mno-sse -mno-sse2 -fno-pie -c -g -mno-red-zone -std=gnu99 -ffreestanding \
+ 	     -Wall -Wextra -Werror
 LD_FLAGS=
 OBJCOPY=objcopy
 GRUB_MKRESCUE=grub-mkrescue
