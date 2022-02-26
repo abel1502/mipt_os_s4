@@ -30,7 +30,7 @@ void multiboot_init() {
         } break;
 
         case MULTIBOOT_TAG_END: {
-            panic("Shouldn't be possible");
+            UNREACHABLE();
         } break;
 
         default:
