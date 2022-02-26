@@ -30,19 +30,19 @@ void vga_putentryat(char c, u8 color, u64 row, u64 col) {
 static void vga_newline_and_return() {
     vga_row++;
     if (vga_row == VGA_HEIGHT) {
-        // We scroll the terminal
-        for (u64 cur_row = 1; cur_row < VGA_HEIGHT; ++cur_row) {
-            // While not ideal, I'd say discarding volatile is fine here,
-            // since we do not really care about the order of there operations...
-            memcpy((void *)&vga_buffer[vga_index(cur_row - 1, 0)],
-                   (void *)&vga_buffer[vga_index(cur_row,     0)],
-                   VGA_WIDTH * sizeof(vga_buffer[0]));
+        // Scroll the terminal
+
+        volatile u16 *cur_cell = &vga_buffer[vga_index(0, 0)];
+        const volatile u16 *stop_cell = &vga_buffer[vga_index(VGA_HEIGHT - 1, 0)];
+
+        for (; cur_cell < stop_cell; ++cur_cell) {
+            *cur_cell = *(cur_cell + VGA_WIDTH);
         }
 
-        volatile u16 *cur_cell = &vga_buffer[vga_index(VGA_HEIGHT - 1, 0)];
+        stop_cell += VGA_WIDTH;
         const u16 entry = vga_entry(' ', vga_entry_color(VGA_COLOR_LIGHT_GREY,
                                                          VGA_COLOR_BLACK));
-        for (unsigned cur_col = 0; cur_col < VGA_WIDTH; ++cur_col, ++cur_cell) {
+        for (; cur_cell < stop_cell; ++cur_cell) {
             *cur_cell = entry;
         }
 
