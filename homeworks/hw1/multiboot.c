@@ -10,6 +10,8 @@ uint32_t mutliboot_info_physaddr = 0;
 static struct {
     bool inited;
     struct multiboot_info_tag_mmap *mmap_tag;
+    u32 mmap_entry_size;
+    const struct multiboot_mmap_entry *mmap_last_entry;
 } multiboot_parsed_info = {.inited = false};
 
 
@@ -27,6 +29,11 @@ void multiboot_init() {
             BUG_ON(cur_tag_mmap->entry_size < sizeof(struct multiboot_mmap_entry));
             BUG_ON(cur_tag_mmap->entry_size % 8 != 0);
             multiboot_parsed_info.mmap_tag = cur_tag_mmap;
+            multiboot_parsed_info.mmap_entry_size = cur_tag_mmap->entry_size;
+            u32 all_entries_size = cur_tag_mmap->header.size - sizeof(struct multiboot_info_tag_mmap);
+            BUG_ON(all_entries_size % cur_tag_mmap->entry_size != 0);
+            multiboot_parsed_info.mmap_last_entry = (const struct multiboot_mmap_entry *)
+                (cur_tag_mmap->entries_storage + all_entries_size);
         } break;
 
         case MULTIBOOT_TAG_END: {
@@ -56,24 +63,23 @@ void multiboot_mmap_iter_init(struct multiboot_mmap_iter *it) {
 
     BUG_ON(!multiboot_parsed_info.inited);
 
-    it->entry_size = multiboot_parsed_info.mmap_tag->entry_size;
-    it->remainig_size = multiboot_parsed_info.mmap_tag->header.size - sizeof(struct multiboot_info_tag_mmap);
     it->entry = (struct multiboot_mmap_entry *)
         multiboot_parsed_info.mmap_tag->entries_storage;
 }
 
 struct multiboot_mmap_entry *multiboot_mmap_iter_next(struct multiboot_mmap_iter *it) {
     BUG_ON_NULL(it);
-    BUG_ON(it->remainig_size % 8 != 0);
+    BUG_ON(!multiboot_parsed_info.inited);
 
-    if (it->remainig_size == 0) {
+    if (it->entry == multiboot_parsed_info.mmap_last_entry) {
         return NULL;
     }
 
     struct multiboot_mmap_entry *cur_entry = it->entry;
 
-    it->remainig_size -= it->entry_size;
-    it->entry = (struct multiboot_mmap_entry *)(((u8 *)it->entry) + it->entry_size);
+    it->entry =
+        (struct multiboot_mmap_entry *)(((u8 *)it->entry) +
+                                        multiboot_parsed_info.mmap_entry_size);
 
     return cur_entry;
 }
