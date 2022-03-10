@@ -33,4 +33,12 @@ void kernel_main() {
     printk("HeLL OS loaded.\n");
 
     dump_mmap();
+
+    #if 0  // VGA scrolling test
+    for (unsigned i = 0; i < 26; ++i) {
+        printk("> %u\n", i);
+    }
+    #endif
+
+    panic("Terminated");
 }

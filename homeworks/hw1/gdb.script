@@ -1,6 +1,6 @@
 target remote :1234
 symbol-file kernel.bin
-layout regs
+layout src
 focus cmd
 b _start
 c

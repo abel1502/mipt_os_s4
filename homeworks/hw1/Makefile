@@ -1,11 +1,28 @@
-AS=/home/carzil/build/cross/bin/x86_64-elf-gcc
-CC=/home/carzil/build/cross/bin/x86_64-elf-gcc
-LD=/home/carzil/build/cross/bin/x86_64-elf-gcc
+AS=x86_64-elf-gcc
+CC=x86_64-elf-gcc
+LD=x86_64-elf-gcc
 AS_FLAGS=-c -g
-CC_FLAGS=-mno-mmx -mno-sse -mno-sse2 -fno-pie -c -g -mno-red-zone -std=gnu99 -ffreestanding -Wall -Wextra
+# Added -Werror just in case
+CC_FLAGS=-mno-mmx -mno-sse -mno-sse2 -fno-pie -c -g -mno-red-zone -std=gnu99 -ffreestanding \
+ 	     -Wall -Wextra -Werror
 LD_FLAGS=
 OBJCOPY=objcopy
 GRUB_MKRESCUE=grub-mkrescue
+
+all: .git/hooks/post-checkout qemu
+
+define POST_CHECKOUT
+#!/bin/sh -x
+make clean
+endef
+export POST_CHECKOUT
+
+.git/hooks/post-checkout:
+	@echo "$$POST_CHECKOUT" > $@
+	@chmod +x $@
+
+update:
+	../tools/update.sh
 
 image: build
 	mkdir -p isodir/boot/grub
@@ -28,4 +45,21 @@ clean:
 	rm -f kernel.iso
 	rm -f kernel.bin
 
-.PHONY: build clean
+QEMU = qemu-system-x86_64
+# TODO?: -monitor stdio
+# TODO: add a disk drive
+QEMUOPTS = -cdrom kernel.iso -monitor stdio
+
+qemu: image
+	$(QEMU) $(QEMUOPTS)
+
+qemu-gdb: image
+	$(QEMU) $(QEMUOPTS) -s -S
+
+qemu-nox: image
+	$(QEMU) $(QEMUOPTS) -display none
+
+qemu-gdb-nox: image
+	$(QEMU) $(QEMUOPTS) -s -S -display none
+
+.PHONY: all build clean update qemu qemu-gdb qemu-nox qemu-gdb-nox
