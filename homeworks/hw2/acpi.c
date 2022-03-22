@@ -29,15 +29,45 @@ struct acpi_rsdp {
 } __attribute__ ((packed));
 
 
+static bool validate_checksum(void *data, size_t size) {
+    uint32_t sum = 0;
+
+    for (size_t i = 0; i < size; ++i) {
+        sum += ((uint8_t *)data)[i];
+    }
+
+    return (sum & 0xff) == 0;
+}
+
 void acpi_init() {
     struct multiboot_tag* mb_tag = multiboot_lookup_tag(MULTIBOOT_TAG_ACPI_OLD_RSDP);
     if (mb_tag == NULL) {
         panic("no multiboot tag with ACPI RSDP addres");
     }
     struct acpi_rsdp* rsdp = (void*)(uint64_t)&mb_tag->data;
+
+    // As per ACPI standard, 5.2.5.3
+    BUG_ON(!validate_checksum(rsdp, 20));
+
     rsdt = (void*)(uint64_t)rsdp->rsdt_addr;
     printk("found RSDT at %p\n", rsdt);
 
-    // TODO: verify ACPI table checksums here.
+    BUG_ON(!validate_checksum(rsdt, rsdt->header.length));
 
+    const unsigned cnt = (rsdt->header.length - sizeof(rsdt->header)) / sizeof(uint32_t);
+
+    for (unsigned i = 0; i < cnt; ++i) {
+        struct acpi_sdt* sdt = (void*)(uint64_t)rsdt->entries[i];
+        
+        BUG_ON(!validate_checksum(sdt, sdt->header.length));
+    }
+
+    #if 0
+    const void *end = ((uint8_t *)rsdt) + rsdt->header.length;
+    for (struct acpi_sdt_header *cur = (void *)rsdt->entries;
+         (void *)cur < end;
+         cur = ((void *)cur) + cur->length) {
+        BUG_ON(!validate_checksum(cur, cur->length));
+    }
+    #endif
 }

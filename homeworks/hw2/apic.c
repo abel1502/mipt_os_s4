@@ -95,7 +95,7 @@ void apic_init() {
         panic("MADT not found!");
     }
 
-    lapic_ptr = (volatile uint32_t*)header->lapic_addr;
+    lapic_ptr = (volatile uint32_t*)(size_t)header->lapic_addr;
 
     struct madt_entry* entry = &header->first_entry;
 
@@ -108,7 +108,7 @@ void apic_init() {
             case TYPE_LAPIC:
                 break;
             case TYPE_IOAPIC:
-                ioapic_ptr = (volatile struct ioapic*)(*(uint32_t*)(&entry->data[2]));
+                ioapic_ptr = (volatile struct ioapic*)(size_t)(*(uint32_t*)(&entry->data[2]));
                 break;
         }
 
