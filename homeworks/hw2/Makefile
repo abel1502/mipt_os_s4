@@ -8,13 +8,29 @@ SED=sed
 GRUB_MKRESCUE=grub-mkrescue
 
 ASFLAGS=-g
-CCFLAGS=-mno-mmx -mno-sse -mno-sse2 -fno-pie -g -mno-red-zone -std=gnu99 -ffreestanding -Wall -Wextra -nostdlib
+# Added -Werror just in case
+CCFLAGS=-mno-mmx -mno-sse -mno-sse2 -fno-pie -g -mno-red-zone -std=gnu99 -ffreestanding -Wall -Wextra -Werror -nostdlib
 LDFLAGS=-ffreestanding -nostdlib
 
 C_SOURCES   := $(shell ls *.c)
 ASM_SOURCES := $(shell ls *.S)
 C_OBJS      := $(C_SOURCES:.c=.c.o)
 ASM_OBJS    := $(ASM_SOURCES:.S=.S.o)
+
+all: .git/hooks/post-checkout qemu
+
+define POST_CHECKOUT
+#!/bin/sh -x
+make clean
+endef
+export POST_CHECKOUT
+
+.git/hooks/post-checkout:
+	@echo "$$POST_CHECKOUT" > $@
+	@chmod +x $@
+
+update:
+	../tools/update.sh
 
 image: build
 	mkdir -p isodir/boot/grub
@@ -47,8 +63,26 @@ build: .c-depend .S-depend $(C_OBJS) $(ASM_OBJS) linker.ld
 clean:
 	rm -f *.o
 	rm -f .*-depend
-	rm -f kernel.bin
 	rm -f kernel.sym
 	rm -f kernel.iso
+	rm -f kernel.bin
 
-.PHONY: build clean
+QEMU = qemu-system-x86_64
+# TODO?: -monitor stdio
+# TODO: add a disk drive
+QEMUOPTS = -cdrom kernel.iso -monitor stdio
+
+qemu: image
+	$(QEMU) $(QEMUOPTS)
+
+qemu-gdb: image
+	$(QEMU) $(QEMUOPTS) -s -S
+
+qemu-nox: image
+	$(QEMU) $(QEMUOPTS) -display none
+
+qemu-gdb-nox: image
+	$(QEMU) $(QEMUOPTS) -s -S -display none
+
+.PHONY: all build clean update qemu qemu-gdb qemu-nox qemu-gdb-nox
+

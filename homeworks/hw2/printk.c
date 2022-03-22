@@ -7,7 +7,7 @@
 enum { PRINTK_BUF_SIZE = 11 };
 static const char digits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
-size_t bprintu64(char* buf, uint64_t a, int base) {
+size_t bprintu64(char *buf, uint64_t a, int base) {
     size_t i;
     size_t bytes;
 
@@ -27,7 +27,7 @@ size_t bprintu64(char* buf, uint64_t a, int base) {
     return bytes;
 }
 
-size_t bprints64(char* buf, int64_t a, int base) {
+size_t bprints64(char *buf, int64_t a, int base) {
     if (a < 0) {
         *(buf++) = '-';
         return 1 + bprintu64(buf, -a, base);
@@ -35,7 +35,7 @@ size_t bprints64(char* buf, int64_t a, int base) {
     return bprintu64(buf, a, base);
 }
 
-size_t bprintstr(char* buf, const char* str) {
+size_t bprintstr(char *buf, const char *str) {
     const char* cur = str;
     size_t length = 0;
     while (*cur) {
@@ -44,7 +44,7 @@ size_t bprintstr(char* buf, const char* str) {
     return length;
 }
 
-size_t bprintptr(char* buf, void* ptr) {
+size_t bprintptr(char *buf, void *ptr) {
     size_t bytes;
     if (ptr == NULL) {
         return bprintstr(buf, "(nil)");
@@ -53,7 +53,7 @@ size_t bprintptr(char* buf, void* ptr) {
     return bytes + bprintu64(buf + bytes, (uint64_t) ptr, 16);
 }
 
-void vprintk(const char* fmt, va_list args) {
+void vprintk(const char *fmt, va_list args) {
     const char* cursor = fmt;
     int idle = 1;
     uint32_t u32value;
@@ -92,6 +92,9 @@ void vprintk(const char* fmt, va_list args) {
                 break;
             case 's':
                 str = va_arg(args, char*);
+                if (!str) {
+                    str = "(null)";
+                }
                 vga_writestring_color(str, color);
                 size = 0;
                 break;
@@ -108,7 +111,7 @@ void vprintk(const char* fmt, va_list args) {
     }
 }
 
-void printk(const char* fmt, ...) {
+void printk(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vprintk(fmt, args);

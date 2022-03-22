@@ -36,7 +36,10 @@ void kernel_main() {
     apic_init();
 
     printk("HeLL OS loaded.\n");
+
     dump_mmap();
 
     irq_enable();
+
+    panic("Terminated");
 }
