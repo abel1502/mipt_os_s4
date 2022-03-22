@@ -3,3 +3,5 @@
 *.sym
 *.iso
 .vscode
+*.depend
+*.*-depend
