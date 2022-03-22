@@ -8,8 +8,8 @@ SED=sed
 GRUB_MKRESCUE=grub-mkrescue
 
 ASFLAGS=-g
-# Added -Werror just in case
-CCFLAGS=-mno-mmx -mno-sse -mno-sse2 -fno-pie -g -mno-red-zone -std=gnu99 -ffreestanding -Wall -Wextra -Werror -nostdlib
+# -Werror?
+CCFLAGS=-mno-mmx -mno-sse -mno-sse2 -fno-pie -g -mno-red-zone -std=gnu99 -ffreestanding -Wall -Wextra -nostdlib
 LDFLAGS=-ffreestanding -nostdlib
 
 C_SOURCES   := $(shell ls *.c)
