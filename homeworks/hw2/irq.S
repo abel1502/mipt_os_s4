@@ -89,10 +89,10 @@ _irq_entry_\entry:
 .section .data
     .Lidt_ptr:
         .word 4*256
-        .long .Lidt
+        .quad .Lidt
 
 .section .text
-    IRQ_ENTRY ERRCODE   ud_handler
+    IRQ_ENTRY NOERRCODE ud_handler
     IRQ_ENTRY ERRCODE   df_handler
     IRQ_ENTRY ERRCODE   ts_handler
     IRQ_ENTRY ERRCODE   np_handler
