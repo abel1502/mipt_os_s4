@@ -36,6 +36,11 @@
     .type _irq_entry_\entry, @function
     .align 16
 _irq_entry_\entry:
+.if \errcode == NOERRCODE
+    # Add a fake error code
+    push 0
+.endif
+
     # First of all, save GPRs on stack.
     push rax
     push rbx
@@ -73,10 +78,8 @@ _irq_entry_\entry:
     pop rbx
     pop rax
 
-.if \errcode
     # Skip error code.
     add rsp, 8
-.endif
 
     # Return from interrupt.
     iretq

@@ -41,5 +41,7 @@ void kernel_main() {
 
     irq_enable();
 
+    // *(volatile int *)0xffffffffffff;
+
     panic("Terminated");
 }
