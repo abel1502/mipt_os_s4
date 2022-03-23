@@ -57,6 +57,7 @@ void vprintk(const char *fmt, va_list args) {
     const char* cursor = fmt;
     int idle = 1;
     uint32_t u32value;
+    uint64_t u64value;
     int32_t s32value;
     void* ptrvalue;
     char* str;
@@ -74,14 +75,26 @@ void vprintk(const char *fmt, va_list args) {
             }
         } else {
             switch (*cursor) {
+            case 'U':
+                u64value = va_arg(args, uint64_t);
+                goto print_u;
             case 'u':
-                u32value = va_arg(args, uint32_t);
-                size = bprintu64(buf, u32value, 10);
+                u64value = va_arg(args, uint32_t);
+                goto print_u;
+            print_u:
+                size = bprintu64(buf, u64value, 10);
                 break;
+
+            case 'X':
+                u64value = va_arg(args, uint64_t);
+                goto print_u;
             case 'x':
-                u32value = va_arg(args, uint32_t);
-                size = bprintu64(buf, u32value, 16);
+                u64value = va_arg(args, uint32_t);
+                goto print_u;
+            print_x:
+                size = bprintu64(buf, u64value, 16);
                 break;
+
             case 'd':
                 s32value = va_arg(args, int32_t);
                 size = bprints64(buf, s32value, 10);
