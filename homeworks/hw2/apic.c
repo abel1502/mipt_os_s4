@@ -109,7 +109,7 @@ static uint32_t apic_calibrate_1ms() {
     // Divisor = 1
     lapic_write(APIC_TMRDIV, 0b1011);
     // Interrupt 32, one-shot mode
-    lapic_write(APIC_LVT_TMR, 32 | TMR_PERIODIC);
+    lapic_write(APIC_LVT_TMR, 32 | TMR_ONESHOT);
     // Counter = a lot
     lapic_write(APIC_TMRINITCNT, counter_initial);
 
