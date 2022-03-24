@@ -21,9 +21,9 @@
     // rax = entry >> 32
     lea rax, _irq_entry_\entry
     shr rax, 32
-    mov dword ptr [ebx + 8], eax
+    mov dword ptr [rbx + 8], eax
 
-    mov dword ptr [ebx + 16], 0
+    mov dword ptr [rbx + 16], 0
 .endm
 
 #define ERRCODE 1
