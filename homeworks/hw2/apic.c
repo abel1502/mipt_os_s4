@@ -91,19 +91,38 @@ static void ioapic_enable(int irq, int target_irq) {
     ioapic_write(IOAPIC_REG_TABLE + 2 * irq + 1, 0);
 }
 
+
+static volatile bool apic_calibration_finished = false;
+
+static void timer_handler_calibration() {
+    printk("Calibrated, woah!\n");
+    apic_calibration_finished = true;
+}
+
 static uint32_t apic_calibrate_1ms() {
-    // const uint32_t counter_initial = 0x10000000;
+    const uint32_t counter_initial = 10000000;
 
-    // // Divisor = 1
-    // lapic_write(APIC_TMRDIV, 0b1011);
-    // // Interrupt 32, one-shot mode
-    // lapic_write(APIC_LVT_TMR, 32 | TMR_ONESHOT);
-    // // Counter = a lot
-    // lapic_write(APIC_TMRINITCNT, counter_initial);
+    timer_handler_t old_handler = set_timer_handler(timer_handler_calibration);
 
-    // //
+    apic_calibration_finished = false;
 
-    return 10000000;
+    // Divisor = 1
+    lapic_write(APIC_TMRDIV, 0b1011);
+    // Interrupt 32, one-shot mode
+    lapic_write(APIC_LVT_TMR, 32 | TMR_PERIODIC);
+    // Counter = a lot
+    lapic_write(APIC_TMRINITCNT, counter_initial);
+
+    irq_enable();
+    while (!apic_calibration_finished) {
+        // Fine since we're waiting for an interrupt
+        asm volatile ("hlt");
+    }
+    irq_disable();
+
+    revert_timer_handler(old_handler);
+
+    return 100000000;
 }
 
 static void timer_handler_default() {

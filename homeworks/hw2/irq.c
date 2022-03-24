@@ -22,7 +22,7 @@ void timer_handler() {
     if (user_timer_handler) {
         user_timer_handler();
     }
-    
+
     apic_eoi();
 }
 
