@@ -3,8 +3,26 @@
 #include "x86.h"
 #include "apic.h"
 
+
+static timer_handler_t user_timer_handler = NULL;
+
+timer_handler_t set_timer_handler(timer_handler_t new_handler) {
+    timer_handler_t old_handler = user_timer_handler;
+
+    user_timer_handler = new_handler;
+
+    return old_handler;
+}
+
+void revert_timer_handler(timer_handler_t old_handler) {
+    user_timer_handler = old_handler;
+}
+
 void timer_handler() {
-    printk(".");
+    if (user_timer_handler) {
+        user_timer_handler();
+    }
+    
     apic_eoi();
 }
 

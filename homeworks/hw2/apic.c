@@ -1,6 +1,8 @@
 #include "apic.h"
 #include "panic.h"
 #include "paging.h"
+#include "irq.h"
+#include "panic.h"
 
 #define TYPE_LAPIC          0
 #define TYPE_IOAPIC         1
@@ -69,6 +71,7 @@ static uint32_t lapic_read(size_t idx) {
 #define APIC_BCAST       0x80000
 #define APIC_LEVEL       0x8000
 #define APIC_DELIVS      0x1000
+#define TMR_ONESHOT      0x00000
 #define TMR_PERIODIC     0x20000
 #define TMR_BASEDIV      (1<<20)
 
@@ -86,6 +89,25 @@ static void ioapic_write(int reg, uint32_t data) {
 static void ioapic_enable(int irq, int target_irq) {
     ioapic_write(IOAPIC_REG_TABLE + 2 * irq, target_irq);
     ioapic_write(IOAPIC_REG_TABLE + 2 * irq + 1, 0);
+}
+
+static uint32_t apic_calibrate_1ms() {
+    // const uint32_t counter_initial = 0x10000000;
+
+    // // Divisor = 1
+    // lapic_write(APIC_TMRDIV, 0b1011);
+    // // Interrupt 32, one-shot mode
+    // lapic_write(APIC_LVT_TMR, 32 | TMR_ONESHOT);
+    // // Counter = a lot
+    // lapic_write(APIC_TMRINITCNT, counter_initial);
+
+    // //
+
+    return 10000000;
+}
+
+static void timer_handler_default() {
+    printk(".");
 }
 
 void apic_init() {
@@ -138,12 +160,13 @@ void apic_init() {
     lapic_write(APIC_LVT_LINT1, APIC_DISABLE);
 
     // Signal EOI.
-    lapic_write(APIC_EOI, 0);
+    apic_eoi();
 
     // Set highest priority for current task.
     lapic_write(APIC_TASKPRIOR, 0);
 
-    // TODO: calibrate APIC timer to fire interrupt every millisecond.
+    // Calibrate APIC timer to fire interrupt every millisecond.
+    const uint32_t ticks_1ms = apic_calibrate_1ms();
 
     // APIC timer setup.
     // Divide Configuration Registers, set to X1
@@ -151,7 +174,10 @@ void apic_init() {
     // Interrupt vector and timer mode.
     lapic_write(APIC_LVT_TMR, 32 | TMR_PERIODIC);
     // Init counter.
-    lapic_write(APIC_TMRINITCNT, 10000000);
+    lapic_write(APIC_TMRINITCNT, ticks_1ms);
+
+    timer_handler_t old_handler = set_timer_handler(timer_handler_default);
+    BUG_ON(old_handler != NULL);
 }
 
 void apic_eoi() {

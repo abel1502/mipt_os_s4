@@ -7,6 +7,11 @@
 
 #include "types.h"
 
+typedef void (*timer_handler_t)();
+
+timer_handler_t set_timer_handler(timer_handler_t new_handler);
+void revert_timer_handler(timer_handler_t old_handler);
+
 void irq_init();
 
 static inline void irq_disable() {
