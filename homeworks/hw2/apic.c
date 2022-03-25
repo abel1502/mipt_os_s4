@@ -121,7 +121,7 @@ static void pic_setup() {
     // Basically a hard-coded initialization
     outb(0x20, 0x11);
     outb(0x21, 32);
-    outb(0xa1, 32);
+    outb(0xa1, 40);
     outb(0x21, 4);
     outb(0xa1, 2);
     outb(0x21, 1);
