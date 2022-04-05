@@ -23,5 +23,7 @@ void __panic(const char *location, const char *msg, ...) {
     "   jmp waitloop\n"
     );
 
+    irq_disable();
+    
     __builtin_unreachable();
 }
