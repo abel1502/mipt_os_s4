@@ -71,5 +71,5 @@ qemu-nox: kernel.iso
 qemu-gdb-nox: kernel.iso
 	$(QEMU) $(QEMUOPTS) -s -S -display none
 
-.PHONY: all clean update qemu qemu-gdb qemu-nox qemu-gdb-nox
+.PHONY: all kernel.bin clean update qemu qemu-gdb qemu-nox qemu-gdb-nox
 

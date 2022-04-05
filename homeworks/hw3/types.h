@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
+
 
 typedef unsigned char u8;
 typedef unsigned short u16;
@@ -12,8 +14,3 @@ typedef signed char s8;
 typedef signed short s16;
 typedef signed int s32;
 typedef signed long long s64;
-
-typedef enum _bool {
-    true = 1,
-    false = 0,
-} bool;
