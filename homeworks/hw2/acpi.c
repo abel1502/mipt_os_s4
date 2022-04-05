@@ -59,7 +59,13 @@ void acpi_init() {
     for (unsigned i = 0; i < cnt; ++i) {
         struct acpi_sdt* sdt = (void*)(uint64_t)rsdt->entries[i];
         
-        BUG_ON(!validate_checksum(sdt, sdt->header.length));
+        if (!validate_checksum(sdt, sdt->header.length)) {
+            char signature[5] = "";
+            *(uint32_t *)signature = *(uint32_t *)sdt->header.signature;
+            signature[4] = 0;
+
+            panic("Wrong checksum for header #%u at %p (\"%s\")", i, sdt, signature);
+        }
     }
 
     #if 0

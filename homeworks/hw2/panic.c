@@ -2,6 +2,7 @@
 
 #include "panic.h"
 #include "printk.h"
+#include "irq.h"
 
 
 __attribute__((noreturn))
@@ -17,13 +18,13 @@ void __panic(const char *location, const char *msg, ...) {
     printk("\n");
     va_end(args);
 
+    irq_disable();
+
     asm volatile (
     "waitloop:\n"
     "   hlt\n"
     "   jmp waitloop\n"
     );
-
-    irq_disable();
     
     __builtin_unreachable();
 }
