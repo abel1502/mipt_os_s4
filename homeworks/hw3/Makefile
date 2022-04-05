@@ -13,6 +13,21 @@ CCFLAGS=-I$(ROOT) -mno-mmx -mno-sse -mno-sse2 -maddress-mode=long -mcmodel=kerne
 LDFLAGS=-nostdlib --no-dynamic-linker --warn-constructors --warn-common --no-eh-frame-hdr --fatal-warnings
 export
 
+all: .git/hooks/post-checkout qemu
+
+define POST_CHECKOUT
+#!/bin/sh -x
+make clean
+endef
+export POST_CHECKOUT
+
+.git/hooks/post-checkout:
+	@echo "$$POST_CHECKOUT" > $@
+	@chmod +x $@
+
+update:
+	../tools/update.sh
+
 kernel.iso: kernel.bin
 	mkdir -p isodir/boot/grub
 	cp grub.cfg isodir/boot/grub
@@ -38,4 +53,23 @@ clean:
 	rm -f kernel.sym
 	rm -f kernel.iso
 
-.PHONY: kernel.bin clean
+
+QEMU = qemu-system-x86_64
+# TODO?: -monitor stdio
+# TODO: add a disk drive
+QEMUOPTS = -cdrom kernel.iso -monitor stdio
+
+qemu: kernel.iso
+	$(QEMU) $(QEMUOPTS)
+
+qemu-gdb: kernel.iso
+	$(QEMU) $(QEMUOPTS) -s -S
+
+qemu-nox: kernel.iso
+	$(QEMU) $(QEMUOPTS) -display none
+
+qemu-gdb-nox: kernel.iso
+	$(QEMU) $(QEMUOPTS) -s -S -display none
+
+.PHONY: all clean update qemu qemu-gdb qemu-nox qemu-gdb-nox
+

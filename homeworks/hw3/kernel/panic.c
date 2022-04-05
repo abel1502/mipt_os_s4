@@ -5,17 +5,19 @@
 #include "arch/x86.h"
 
 
-void __panic(const char* location, const char* msg, ...) {
-    irq_disable();
-
-    printk("panic at %s: ", location);
-
-    va_list args;
+__attribute__((noreturn))
+void __panic(const char *location, const char *msg, ...) {
+    va_list args = {};
     va_start(args, msg);
-    vprintk(msg, args);
+    printk("Kernel panic at %s: ", location);
+    if (msg) {
+        vprintk(msg, args);
+    } else {
+        printk("(null msg)");
+    }
+    printk("\n");
     va_end(args);
 
-    printk(".\n");
-
+    irq_disable();
     x86_hlt_forever();
 }

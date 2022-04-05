@@ -27,10 +27,13 @@ static inline void x86_write_cr3(uint64_t x) {
     );
 }
 
+__attribute__((noreturn))
 static inline void x86_hlt_forever() {
     for (;;) {
         __asm__ volatile ("hlt");
     }
+
+    __builtin_unreachable();
 }
 
 static inline void x86_outb(uint16_t port, uint8_t data) {
