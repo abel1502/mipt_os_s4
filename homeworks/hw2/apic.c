@@ -2,7 +2,6 @@
 #include "panic.h"
 #include "paging.h"
 #include "irq.h"
-#include "panic.h"
 
 #define TYPE_LAPIC          0
 #define TYPE_IOAPIC         1

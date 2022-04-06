@@ -2,6 +2,7 @@
 #include "kernel/panic.h"
 #include "mm/paging.h"
 #include "arch/x86.h"
+#include "kernel/irq.h"
 
 #define TYPE_LAPIC          0
 #define TYPE_IOAPIC         1
@@ -70,6 +71,7 @@ static uint32_t lapic_read(size_t idx) {
 #define APIC_BCAST       0x80000
 #define APIC_LEVEL       0x8000
 #define APIC_DELIVS      0x1000
+#define TMR_ONESHOT      0x00000
 #define TMR_PERIODIC     0x20000
 #define TMR_BASEDIV      (1<<20)
 
@@ -81,8 +83,143 @@ static void ioapic_write(int reg, uint32_t data) {
 }
 
 static void ioapic_enable(int irq, int target_irq) {
-    ioapic_write(IOAPIC_REG_TABLE + 2 * irq, target_irq);
-    ioapic_write(IOAPIC_REG_TABLE + 2 * irq + 1, 0);
+    if (irq < 0) {
+        irq = -irq;
+
+        ioapic_write(IOAPIC_REG_TABLE + 2 * irq + 1, 0);
+        ioapic_write(IOAPIC_REG_TABLE + 2 * irq, target_irq);
+    } else {
+        ioapic_write(IOAPIC_REG_TABLE + 2 * irq + 1, 0);
+        ioapic_write(IOAPIC_REG_TABLE + 2 * irq, target_irq | (1 << 16));
+    }
+}
+
+
+static const uint32_t pit_ticks_step = 0x1000;
+static volatile bool apic_calibration_finished = true;
+static volatile uint32_t pit_ticks_remaining = 0;
+
+static inline void pit_set_delay(uint16_t delay) {
+    outb(0x40, (delay     ) & 0xff);
+    outb(0x40, (delay >> 8) & 0xff);
+}
+
+static void pic_eoi() {
+    outb(0x20, 0x20);
+}
+
+static void pic_disable() {
+    outb(0x21, 0xff);
+    outb(0xa1, 0xff);
+}
+
+static void pic_setup() {
+    // Basically a hard-coded initialization
+    outb(0x20, 0x11);
+    outb(0x21, 32);
+    outb(0xa1, 40);
+    outb(0x21, 4);
+    outb(0xa1, 2);
+    outb(0x21, 1);
+    outb(0xa1, 1);
+
+    outb(0x21, 0xff & ~1);
+    outb(0xa1, 0xff);
+}
+
+static void timer_handler_calibration() {
+    // printk("Hit!\n");
+
+    if (apic_calibration_finished) {
+        pic_eoi();
+        return;
+    }
+
+    if (pit_ticks_remaining >= pit_ticks_step) {
+        pit_ticks_remaining -= pit_ticks_step;
+
+        pic_eoi();
+        return;
+    }
+
+    pit_ticks_remaining = 0;
+    apic_calibration_finished = true;
+
+    pic_eoi();
+}
+
+// Returns the counter value corresponding to a 1ms apic timer delay
+static uint32_t apic_calibrate_1ms() {
+    // Shouldn't run out in the 100ms we're testing it for
+    const uint32_t counter_initial = 0xffffffff;
+    const uint32_t divisor_flag    = 0b1011;
+    const uint32_t divisor_value   = 1;
+    // PIT frequency = 1193182 Hz, so this will constitute 100ms
+    // TODO: This is a lot more than what would fit inside the
+    //       divide counter, so we should use several timer rounds
+    const uint32_t pit_ticks       = 119318;
+    const uint32_t pit_mss         = 100;
+
+    timer_handler_t old_handler = set_timer_handler(timer_handler_calibration);
+
+    apic_calibration_finished = false;
+
+    // APIC init
+    lapic_write(APIC_TMRDIV, divisor_flag);
+    // Interrupt 39 (spurious), one-shot mode. Should never fire due to the size of the counter
+    lapic_write(APIC_LVT_TMR, 39 | TMR_ONESHOT);
+
+    // PIT init
+    pit_ticks_remaining = pit_ticks;
+    // Channel 0, hi+lo, recurring, binary
+    outb(0x43, 0b00110100);
+
+    // ========================================
+    irq_enable();
+
+    // APIC start
+    lapic_write(APIC_TMRINITCNT, counter_initial);
+
+    // PIT start
+    pit_set_delay(pit_ticks_step);
+
+    // Wait for PIT end
+    while (!apic_calibration_finished) {
+        // Fine since we're waiting for an interrupt
+        asm volatile ("hlt");
+    }
+
+    // Capture APIC value
+    const uint32_t counter_remaining = lapic_read(APIC_TMRCURRCNT);
+
+    irq_disable();
+    // ========================================
+
+    // pit_ticks_remaining should have been exhausted
+    BUG_ON(pit_ticks_remaining > 0);
+
+    revert_timer_handler(old_handler);
+
+    const uint32_t counter_delta = counter_initial - counter_remaining;
+
+    // To make sure it isn't unreasonably low
+    BUG_ON(counter_delta < 1000);
+
+    printk("APIC timer works at %u ticks per 1 ms\n", counter_delta * divisor_value / pit_mss);
+
+    return counter_delta * divisor_value / pit_mss;
+}
+
+static void timer_handler_default() {
+    static uint32_t counter = 0;
+
+    counter++;
+
+    if (counter >= 1000) {
+        counter = 0;
+
+        printk(".");
+    }
 }
 
 void apic_init() {
@@ -92,7 +229,7 @@ void apic_init() {
         panic("MADT not found!");
     }
 
-    lapic_ptr = PHYS_TO_VIRT((uint64_t)header->lapic_addr);
+    lapic_ptr = (volatile uint32_t*)(uintptr_t)header->lapic_addr;
 
     struct madt_entry* entry = &header->first_entry;
 
@@ -105,7 +242,7 @@ void apic_init() {
             case TYPE_LAPIC:
                 break;
             case TYPE_IOAPIC:
-                ioapic_ptr = PHYS_TO_VIRT((*(uint32_t*)(&entry->data[2])));
+                ioapic_ptr = (volatile struct ioapic*)(uintptr_t)(*(uint32_t*)(&entry->data[2]));
                 break;
         }
 
@@ -120,6 +257,9 @@ void apic_init() {
         panic("cannot locate Local APIC address");
     }
 
+    // Disable old PIC.
+    pic_setup();
+
     // Enable APIC, by setting spurious interrupt vector and APIC Software Enabled/Disabled flag.
     lapic_write(APIC_SPURIOUS, 39 | APIC_SW_ENABLE);
 
@@ -127,14 +267,22 @@ void apic_init() {
     lapic_write(APIC_LVT_PERF, APIC_DISABLE);
 
     // Disable local interrupt pins.
-    lapic_write(APIC_LVT_LINT0, APIC_DISABLE);
     lapic_write(APIC_LVT_LINT1, APIC_DISABLE);
 
     // Signal EOI.
-    lapic_write(APIC_EOI, 0);
+    apic_eoi();
 
     // Set highest priority for current task.
     lapic_write(APIC_TASKPRIOR, 0);
+
+    // Unmask the PIT and spurious irqs?
+    // ioapic_enable(0, 32 + 0);
+    // ioapic_enable(7, 32 + 7);
+
+    // Calibrate APIC timer to fire interrupt every millisecond.
+    const uint32_t ticks_1ms = apic_calibrate_1ms();
+
+    pic_disable();
 
     // APIC timer setup.
     // Divide Configuration Registers, set to X1
@@ -142,7 +290,12 @@ void apic_init() {
     // Interrupt vector and timer mode.
     lapic_write(APIC_LVT_TMR, 32 | TMR_PERIODIC);
     // Init counter.
-    lapic_write(APIC_TMRINITCNT, 10000000);
+    lapic_write(APIC_TMRINITCNT, ticks_1ms);
+
+    timer_handler_t old_handler = set_timer_handler(timer_handler_default);
+    BUG_ON(old_handler != NULL);
+
+    lapic_write(APIC_LVT_LINT0, APIC_DISABLE);
 }
 
 void apic_eoi() {
