@@ -2,6 +2,7 @@
 #include "kernel/panic.h"
 #include "arch/x86.h"
 #include "drivers/apic.h"
+#include <stdbool.h>
 
 
 static timer_handler_t user_timer_handler = NULL;
@@ -74,6 +75,12 @@ static void fail() {
 }
 
 void pf_handler(struct irqctx *ctx) {
+    bool vmem_pf_handler(struct irqctx *ctx, void *pf_addr);
+
+    if (vmem_pf_handler(ctx, (void *)x86_read_cr2())) {
+        return;
+    }
+
     dump_err_info("page fault", ctx, true);
     fail();
 }
