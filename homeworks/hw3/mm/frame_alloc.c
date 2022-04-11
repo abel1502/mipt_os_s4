@@ -392,7 +392,9 @@ void *frames_alloc(size_t n) {
 }
 
 void frames_free(void *addr, size_t n) {
-    BUG_ON(addr == NULL);
+    if (!addr) {
+        return;
+    }
 
     for (struct buddy_alloc_chunk *chunk = used_areas;
          chunk < used_areas + used_areas_size;
@@ -407,10 +409,10 @@ void frames_free(void *addr, size_t n) {
     panic("Free called on non-allocated memory");
 }
 
-void* frame_alloc() {
+void *frame_alloc() {
     return frames_alloc(1);
 }
 
-void frame_free(void* addr) {
+void frame_free(void *addr) {
     return frames_free(addr, 1);
 }
