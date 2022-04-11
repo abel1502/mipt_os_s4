@@ -5,12 +5,22 @@
 #include "common.h"
 #include "defs.h"
 
+struct obj_frame {
+    struct obj_frame *prev,
+                     *next;
+} __attribute__((aligned(CACHE_LINE_SIZE_BYTES)));
+
 typedef struct obj_alloc {
-    // TODO: fill me.
+    size_t obj_size;
+    struct obj_frame *head;
 } obj_alloc_t;
 
-#define OBJ_ALLOC_DEFINE(var, type) obj_alloc_t var = { /* initialize fields here, hint: use sizeof(type) */ }
-#define OBJ_ALLOC_DECLARE(var) obj_alloc_t var
+#define OBJ_ALLOC_DEFINE(VAR, TYPE) obj_alloc_t VAR = {         \
+    .obj_size = ALIGN_UP(sizeof(TYPE), CACHE_LINE_SIZE_BYTES),  \
+    .head = NULL                                                \
+}
+
+#define OBJ_ALLOC_DECLARE(VAR) obj_alloc_t VAR
 
 // object_alloc allocates single object and returns its virtual address.
 void* object_alloc(obj_alloc_t* alloc);
