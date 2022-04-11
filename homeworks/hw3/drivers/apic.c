@@ -100,31 +100,31 @@ static volatile bool apic_calibration_finished = true;
 static volatile uint32_t pit_ticks_remaining = 0;
 
 static inline void pit_set_delay(uint16_t delay) {
-    outb(0x40, (delay     ) & 0xff);
-    outb(0x40, (delay >> 8) & 0xff);
+    x86_outb(0x40, (delay     ) & 0xff);
+    x86_outb(0x40, (delay >> 8) & 0xff);
 }
 
 static void pic_eoi() {
-    outb(0x20, 0x20);
+    x86_outb(0x20, 0x20);
 }
 
 static void pic_disable() {
-    outb(0x21, 0xff);
-    outb(0xa1, 0xff);
+    x86_outb(0x21, 0xff);
+    x86_outb(0xa1, 0xff);
 }
 
 static void pic_setup() {
     // Basically a hard-coded initialization
-    outb(0x20, 0x11);
-    outb(0x21, 32);
-    outb(0xa1, 40);
-    outb(0x21, 4);
-    outb(0xa1, 2);
-    outb(0x21, 1);
-    outb(0xa1, 1);
+    x86_outb(0x20, 0x11);
+    x86_outb(0x21, 32);
+    x86_outb(0xa1, 40);
+    x86_outb(0x21, 4);
+    x86_outb(0xa1, 2);
+    x86_outb(0x21, 1);
+    x86_outb(0xa1, 1);
 
-    outb(0x21, 0xff & ~1);
-    outb(0xa1, 0xff);
+    x86_outb(0x21, 0xff & ~1);
+    x86_outb(0xa1, 0xff);
 }
 
 static void timer_handler_calibration() {
@@ -172,7 +172,7 @@ static uint32_t apic_calibrate_1ms() {
     // PIT init
     pit_ticks_remaining = pit_ticks;
     // Channel 0, hi+lo, recurring, binary
-    outb(0x43, 0b00110100);
+    x86_outb(0x43, 0b00110100);
 
     // ========================================
     irq_enable();
@@ -186,7 +186,7 @@ static uint32_t apic_calibrate_1ms() {
     // Wait for PIT end
     while (!apic_calibration_finished) {
         // Fine since we're waiting for an interrupt
-        asm volatile ("hlt");
+        __asm__ volatile ("hlt");
     }
 
     // Capture APIC value

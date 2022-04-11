@@ -1,6 +1,5 @@
 #include "obj.h"
 #include "mm/frame_alloc.h"
-#include "panic.h"
 
 
 static void object_register_region(obj_alloc_t *alloc, void *start, const void *end) {

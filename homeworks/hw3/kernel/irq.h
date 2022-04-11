@@ -15,11 +15,11 @@ void revert_timer_handler(timer_handler_t old_handler);
 void irq_init();
 
 static inline void irq_disable() {
-    asm volatile ("cli");
+    __asm__ volatile ("cli");
 }
 
 static inline void irq_enable() {
-    asm volatile ("sti");
+    __asm__ volatile ("sti");
 }
 
 struct saved_regs {

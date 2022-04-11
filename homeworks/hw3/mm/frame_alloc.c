@@ -84,7 +84,7 @@ static inline void bac_set(struct buddy_alloc_chunk *chunk, size_t idx, bool val
     BUG_ON_NULL(chunk);
     BUG_ON(idx >= (sizeof(chunk->data) << 3));
     
-    unsigned char *byte_ptr = chunk->data[idx >> 3];
+    unsigned char *byte_ptr = &chunk->data[idx >> 3];
     unsigned char byte = *byte_ptr;
 
     if (value) {
@@ -112,7 +112,7 @@ static inline unsigned bac_row_to_table_idx(unsigned level, unsigned row_idx) {
     BUG_ON(level >= MAX_ALLOC_LEVEL);
 
     // TODO: May be wrong, check!
-    return (1 << (MAX_ALLOC_LEVEL - level - 1) + row_idx - 1) >> 1;
+    return ((1 << (MAX_ALLOC_LEVEL - level - 1)) + row_idx - 1) >> 1;
 }
 
 static inline unsigned bac_get_row_idx(const struct buddy_alloc_chunk *chunk, unsigned level, const void *addr) {
@@ -135,7 +135,7 @@ static inline unsigned bac_get_buddypair_idx(const struct buddy_alloc_chunk *chu
     return bac_row_to_table_idx(level, bac_get_buddypair_row_idx(chunk, level, addr));
 }
 
-static void bac_init(struct buddy_alloc_chunk *chunk, size_t size) {
+static void bac_init(struct buddy_alloc_chunk *chunk) {
     BUG_ON_NULL(chunk);
 
     for (unsigned level = 0; level < MAX_ALLOC_LEVEL; ++level) {
@@ -177,15 +177,16 @@ static void bac_rem_node(struct buddy_alloc_chunk *chunk, unsigned level, struct
 static void bac_add_region(mem_region_t region) {
     BUG_ON_NULL(region.start);
     BUG_ON_NULL(region.end);
+
     BUG_ON((size_t)region.start % PAGE_SIZE != 0);
     BUG_ON((size_t)region.end   % PAGE_SIZE != 0);
 
     size_t size = (region.end - region.start) / PAGE_SIZE;
 
-    const size_t max_tile_size = 1 << (MAX_ALLOC_LEVEL - 1);
+    const size_t max_tile_size = (1 << (MAX_ALLOC_LEVEL - 1));
     while (size > max_tile_size) {
-        bac_add_region((mem_region_t){region.start, region.start + max_tile_size});
-        region.start += max_tile_size;
+        bac_add_region((mem_region_t){region.start, region.start + max_tile_size * PAGE_SIZE});
+        region.start += max_tile_size * PAGE_SIZE;
         size -= max_tile_size;
     }
 
@@ -193,8 +194,10 @@ static void bac_add_region(mem_region_t region) {
     struct buddy_alloc_chunk *chunk = &used_areas[used_areas_size++];
     chunk->mem = region;
 
+    bac_init(chunk);
+
     for (unsigned level = MAX_ALLOC_LEVEL - 1;
-         size > 0 && level != -1;
+         size > 0 && level != -1u;
          --level) {
         
         const size_t level_size = 1 << level;
@@ -329,14 +332,13 @@ static size_t frame_alloc_add_area(void *base, size_t sz) {
 
     // TODO: Was "i < sz-1". Why?
     for (size_t i = 0; i < sz; i++) {
-        void *curr = &base[i * PAGE_SIZE];
+        void *curr = base + i * PAGE_SIZE;
 
         if (is_allocated(curr)) {
             if (prev_free) {
                 bac_add_region((mem_region_t){prev_free, curr});
+                prev_free = NULL;
             }
-
-            prev_free = NULL;
 
             continue;
         }
@@ -384,6 +386,8 @@ void *frames_alloc(size_t n) {
         
         void *result = bac_alloc_pages(chunk, n);
         if (result) {
+            // TODO: Maybe remove, or make optional?
+            memset(result, 0, n * PAGE_SIZE);
             return result;
         }
     }

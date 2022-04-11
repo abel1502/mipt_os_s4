@@ -4,11 +4,13 @@
 
 #include "common.h"
 #include "defs.h"
+#include "kernel/panic.h"
 
 struct obj_frame {
     struct obj_frame *prev,
                      *next;
 } __attribute__((aligned(CACHE_LINE_SIZE_BYTES)));
+static_assert(sizeof(struct obj_frame) == CACHE_LINE_SIZE_BYTES, "Bad size");
 
 typedef struct obj_alloc {
     size_t obj_size;
