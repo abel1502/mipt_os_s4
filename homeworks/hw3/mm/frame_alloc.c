@@ -100,7 +100,7 @@ static inline void bac_flip(struct buddy_alloc_chunk *chunk, size_t idx) {
     BUG_ON_NULL(chunk);
     BUG_ON(idx >= (sizeof(chunk->data) << 3));
     
-    unsigned char *byte_ptr = chunk->data[idx >> 3];
+    unsigned char *byte_ptr = &chunk->data[idx >> 3];
     unsigned char byte = *byte_ptr;
 
     byte ^= 1 << (idx & 0b111);
@@ -296,7 +296,7 @@ static struct list_node *bac_alloc_pages(struct buddy_alloc_chunk *chunk, size_t
     unsigned level = MAX_ALLOC_LEVEL - 1;
     for (size_t cur_pages = 1 << level; 
          cur_pages > pages; 
-         cur_pages <<= 1, --level) {}
+         cur_pages >>= 1, --level) {}
     
     struct list_node *node = bac_get_node(chunk, level);
     if (node) {
@@ -318,7 +318,7 @@ static void bac_free_pages(struct buddy_alloc_chunk *chunk, struct list_node *no
     unsigned level = MAX_ALLOC_LEVEL - 1;
     for (size_t cur_pages = 1 << level; 
          cur_pages > pages; 
-         cur_pages <<= 1, --level) {}
+         cur_pages >>= 1, --level) {}
 
     bac_add_node(chunk, level, node);
     

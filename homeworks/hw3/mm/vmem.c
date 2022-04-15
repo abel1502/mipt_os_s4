@@ -36,12 +36,17 @@ static void vmem_map_page(vmem_t* vm, void* virt_addr, void* frame) {
     if (!(pde & PTE_PRESENT)) {
         pgtbl = frames_alloc(1);
         BUG_ON_NULL(pgtbl);
-        pdpe = pgdir->entries[PDE_FROM_ADDR(virt_addr)] = (uint64_t)VIRT_TO_PHYS(pgtbl) | PTE_PRESENT;
+        pde = pgdir->entries[PDE_FROM_ADDR(virt_addr)] = (uint64_t)VIRT_TO_PHYS(pgtbl) | PTE_PRESENT;
     } else {
         pgtbl = PHYS_TO_VIRT(PTE_ADDR(pde));
     }
 
-    pgtbl->entries[PTE_FROM_ADDR(virt_addr)] = (uint64_t)VIRT_TO_PHYS(frame) | PTE_PRESENT;
+    uint64_t entry = (uint64_t)VIRT_TO_PHYS(frame) | PTE_PRESENT;
+    // if (frame == NULL) {
+    //     entry = 0;
+    // }
+
+    pgtbl->entries[PTE_FROM_ADDR(virt_addr)] = entry;
 }
 
 // Returns the underlying physical frame
@@ -49,16 +54,20 @@ static void *vmem_unmap_page(vmem_t* vm, void* virt_addr) {
     uint64_t pml4e = vm->pml4->entries[PML4E_FROM_ADDR(virt_addr)];
     BUG_ON(!(pml4e & PTE_PRESENT));
     pdpt_t* pdpt = PHYS_TO_VIRT(PTE_ADDR(pml4e));
+    BUG_ON_NULL(pdpt);
 
     uint64_t pdpe = pdpt->entries[PDPE_FROM_ADDR(virt_addr)];
     BUG_ON(!(pdpe & PTE_PRESENT));
     pgdir_t* pgdir = PHYS_TO_VIRT(PTE_ADDR(pdpe));
+    BUG_ON_NULL(pgdir);
 
     uint64_t pde = pgdir->entries[PDE_FROM_ADDR(virt_addr)];
     BUG_ON(!(pde & PTE_PRESENT));
     pgtbl_t* pgtbl = PHYS_TO_VIRT(PTE_ADDR(pde));
+    BUG_ON_NULL(pgtbl);
 
     uint64_t *entry = &pgtbl->entries[PTE_FROM_ADDR(virt_addr)];
+    BUG_ON_NULL(entry);
     *entry &= !PTE_PRESENT;
 
     return PHYS_TO_VIRT(PTE_ADDR(*entry));
@@ -79,7 +88,7 @@ void vmem_alloc_pages(vmem_t* vm, void* virt_addr, size_t pgcnt) {
     while (pgcnt > 0) {
         // Replaced by odp
         // void* frame = frame_alloc();
-        vmem_map_page(vm, virt_addr, NULL);
+        // vmem_map_page(vm, virt_addr, frame);
         vmem_odp_list_add(vm, (struct vmem_odp_info){ .next = NULL, .page = virt_addr });
         virt_addr += PAGE_SIZE;
         pgcnt--;
@@ -114,6 +123,8 @@ void vmem_switch_to(vmem_t* vm) {
 // Not static, since it's called from pf_handler() in irq.c
 // Returns true if handled
 bool vmem_pf_handler(struct irqctx *ctx, void *pf_addr) {
+    // printk("Page fault!\n");
+
     if (!cur_vmem) {
         return false;
     }
@@ -134,13 +145,17 @@ bool vmem_pf_handler(struct irqctx *ctx, void *pf_addr) {
             cur_vmem->odp = cur->next;
         }
 
-        void* frame = frame_alloc();
-        // The case of frame being NULL is handled automatically
+        void *frame = frame_alloc();
+        
+        if (!frame) {
+            return false;
+        }
+
         vmem_map_page(cur_vmem, pf_addr, frame);
 
         object_free(&vmem_odp_info_allocator, cur);
 
-        return (bool)frame;
+        return true;
     }
 
     return false;

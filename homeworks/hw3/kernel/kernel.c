@@ -54,5 +54,22 @@ void kernel_main(early_data_t* early_data) {
     vmem_t vmem;
     vmem_init_from_current(&vmem);
 
+    #if 0
+    int *frame = frame_alloc();
+    frame[0] = 123;
+    frame[1] = 456;
+    BUG_ON(frame[0] != 123);
+    BUG_ON(frame[1] != 456);
+    frame_free(frame);
+    #elif 0
+    int *frame = (int *)0x0000000900001000ull;
+    vmem_alloc_pages(&vmem, frame, 1);
+    frame[0] = 123;
+    frame[1] = 456;
+    BUG_ON(frame[0] != 123);
+    BUG_ON(frame[1] != 456);
+    vmem_free_pages(&vmem, frame, 1);
+    #endif
+
     panic("Terminated.");
 }
