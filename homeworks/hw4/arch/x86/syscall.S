@@ -13,7 +13,7 @@
 # This is an entry point for syscall instruction.
 # On enter, following holds:
 #   rax contains syscall number;
-#   rdi, rsi, rdx, rcx, r8, r9 contain syscall arguments (in order);
+#   rdi, rsi, rdx, r10, r8, r9 contain syscall arguments (in order);
 #   rcx contains userspace rip;
 #   r11 contains userspace rflags;
 #   rsp contains *userspace* stack (it may be corrupted or not mapped);
