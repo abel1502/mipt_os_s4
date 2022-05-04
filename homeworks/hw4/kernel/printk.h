@@ -3,5 +3,5 @@
 #pragma once
 #include <stdarg.h>
 
-void printk(const char* fmt, ...);
-void vprintk(const char* fmt, va_list args);
+void printk(const char *fmt, ...);
+void vprintk(const char *fmt, va_list args);
