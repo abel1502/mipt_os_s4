@@ -1,6 +1,7 @@
 #include "syscall.h"
 #include "kernel/printk.h"
 #include "kernel/errno.h"
+#include "kernel/panic.h"
 #include "arch/x86/arch.h"
 #include "sched/sched.h"
 #include "common.h"
@@ -8,6 +9,7 @@
 int64_t sys_sleep(arch_regs_t* regs) {
     uint64_t ms = syscall_arg0(regs);
     // TODO: implement me.
+    UNUSED(ms);
 
     return 0;
 }
@@ -27,6 +29,8 @@ uint64_t do_syscall(uint64_t sysno, arch_regs_t* regs) {
     if (sysno >= SYS_MAX) {
         return -ENOSYS;
     }
+    printk("Syscall!\n");
+    panic("Enough");
     syscall_fn_t syscall = syscall_table[sysno];
     return syscall(regs);
 }

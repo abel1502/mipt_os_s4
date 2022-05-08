@@ -56,7 +56,7 @@ size_t bprintptr(char *buf, void *ptr) {
 void vprintk(const char *fmt, va_list args) {
     const char* cursor = fmt;
     int idle = 1;
-    uint32_t u32value;
+    // uint32_t u32value;
     uint64_t u64value;
     int32_t s32value;
     void* ptrvalue;
@@ -87,10 +87,10 @@ void vprintk(const char *fmt, va_list args) {
 
             case 'X':
                 u64value = va_arg(args, uint64_t);
-                goto print_u;
+                goto print_x;
             case 'x':
                 u64value = va_arg(args, uint32_t);
-                goto print_u;
+                goto print_x;
             print_x:
                 size = bprintu64(buf, u64value, 16);
                 break;

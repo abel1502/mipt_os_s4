@@ -8,16 +8,16 @@
 #define VMEM_WRITE    (1 << 1)
 
 typedef struct vmem_area {
-    void* start;
+    void *start;
     size_t pgcnt;
     uint64_t flags;
-    struct vmem_area* next;
+    struct vmem_area *next;
 } vmem_area_t;
 
 // vmem_t is used to manage an address space, including all its page tables.
 typedef struct vmem {
-    pml4_t* pml4;
-    vmem_area_t* areas_head;
+    pml4_t *pml4;
+    vmem_area_t *areas_head;
 } vmem_t;
 
 // vmem_init_from_cr3 initializes vmem from current address space.

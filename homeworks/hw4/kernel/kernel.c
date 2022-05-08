@@ -43,7 +43,8 @@ void kernel_main(early_data_t* early_data) {
     vga_init();
     multiboot_init(early_data->multiboot_info);
     acpi_init();
-    apic_init();
+    // TODO: Maybe fix memory and uncomment?
+    // apic_init();
     irq_enable();
 
     printk("Hello from higher-half!.\n");

@@ -21,4 +21,6 @@ _Noreturn void __panic(const char* location, const char* msg, ...);
     } \
 }
 #define BUG_ON_REACH() panic("unreachable code executed")
+#define NODEFAULT  default: BUG_ON_REACH();
 
+#define static_assert _Static_assert

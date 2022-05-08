@@ -9,7 +9,7 @@ GRUB_MKRESCUE=grub-mkrescue
 
 ROOT=$(shell pwd)
 ASFLAGS=-g -I$(ROOT)
-CCFLAGS=-I$(ROOT) -mno-mmx -mno-sse -mno-sse2 -maddress-mode=long -mcmodel=kernel -g -m64 -mno-red-zone -std=c11 -ffreestanding -nostdlib -fno-common -Wall -Werror -Wextra -Wno-unused-function
+CCFLAGS=-I$(ROOT) -mno-mmx -mno-sse -mno-sse2 -maddress-mode=long -mcmodel=kernel -g -m64 -mno-red-zone -std=c11 -ffreestanding -nostdlib -fno-common -Wall -Werror -Wextra -Wno-unused-function -Wno-unused-function -Wno-error=unused-parameter
 LDFLAGS=-nostdlib --no-dynamic-linker --warn-constructors --warn-common --no-eh-frame-hdr --fatal-warnings
 export
 

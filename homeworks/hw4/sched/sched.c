@@ -152,6 +152,7 @@ int64_t sys_getpid(arch_regs_t* regs) {
 
 int64_t sys_fork(arch_regs_t* parent_regs) {
     // TODO: implement me.
+    return -EINVAL;
 }
 
 _Noreturn int64_t sys_exit(arch_regs_t* regs) {

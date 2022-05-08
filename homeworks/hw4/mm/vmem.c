@@ -1,9 +1,9 @@
 #include "vmem.h"
 #include "frame_alloc.h"
-#include "obj.h"
 #include "paging.h"
 #include "kernel/errno.h"
 #include "kernel/panic.h"
+#include "obj.h"
 #include "common.h"
 
 static uint64_t convert_flags(uint64_t flags) {
@@ -101,7 +101,7 @@ int vmem_map_page(vmem_t* vm, void* virt_addr, void* phys_addr, uint64_t flags) 
     return 0;
 }
 
-OBJ_ALLOC_DEFINE(vmem_area_alloc, vmem_area_t);
+static OBJ_ALLOC_DEFINE(vmem_area_alloc, vmem_area_t);
 
 int vmem_alloc_pages(vmem_t* vm, void* virt_addr, size_t pgcnt, uint64_t flags) {
     size_t allocated = 0;

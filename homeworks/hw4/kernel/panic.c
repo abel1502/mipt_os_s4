@@ -2,7 +2,7 @@
 
 #include "kernel/irq.h"
 #include "panic.h"
-#include "arch/x86.h"
+#include "arch/x86/x86.h"
 
 
 _Noreturn
