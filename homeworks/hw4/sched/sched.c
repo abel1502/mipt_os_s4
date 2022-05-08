@@ -133,10 +133,10 @@ void sched_start() {
                 found = true;
                 // We've returned to the scheduler.
 
-                // TODO: Release it in sys_wait instead?
-                if (tasks[i].state == TASK_ZOMBIE) {
-                    release_task(&tasks[i]);
-                }
+                // Released it in sys_wait instead
+                // if (tasks[i].state == TASK_ZOMBIE) {
+                //     release_task(&tasks[i]);
+                // }
             }
         }
 
@@ -246,5 +246,13 @@ int64_t sys_wait(arch_regs_t* regs) {
         sched_switch();
     }
 
-    return -EINVAL;
+    if (!vmem_is_user_addr(&_current->vmem, status, sizeof(int))) {
+        return -EINVAL;
+    }
+
+    *status = task->exitcode;
+
+    release_task(task);
+
+    return 0;
 }

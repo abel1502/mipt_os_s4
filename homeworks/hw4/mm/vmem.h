@@ -46,3 +46,5 @@ int vmem_map_page(vmem_t* vm, void* virt_addr, void* phys_addr, uint64_t flags);
 
 // vmem_copy_from_current copies all allocated areas from curr to dst, assuming that curr is an active address space.
 int vmem_clone_from_current(vmem_t* dst, vmem_t* curr);
+
+bool vmem_is_user_addr(vmem_t *vmem, void *virt_addr, size_t size);

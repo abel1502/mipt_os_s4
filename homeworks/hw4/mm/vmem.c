@@ -156,3 +156,22 @@ int vmem_init_new(vmem_t* vm) {
     memset(vm->pml4, '\0', sizeof(pml4_t));
     return 0;
 }
+
+bool vmem_is_user_addr(vmem_t *vmem, void *virt_addr, size_t size) {
+    BUG_ON_NULL(vmem);
+
+    for (vmem_area_t *area = vmem->areas_head; area; area = area->next) {
+        const bool contained_fully = (
+            area->start <= virt_addr && 
+            virt_addr - area->start <= area->pgcnt * PAGE_SIZE
+        );
+
+        if (!contained_fully) {
+            continue;
+        }
+
+        return area->flags & VMEM_USER;
+    }
+    
+    return false;
+}
