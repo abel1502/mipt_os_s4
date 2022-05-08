@@ -200,13 +200,15 @@ int64_t sys_sleep(arch_regs_t* regs) {
 
 int64_t sys_fork(arch_regs_t* parent_regs) {
     // TODO: implement me.
+    UNUSED(parent_regs);
+
     return -EINVAL;
 }
 
 int64_t sys_getpid(arch_regs_t* regs) {
     UNUSED(regs);
 
-    printk("sys_getpid\n");
+    // printk("sys_getpid\n");
 
     return _current->pid;
 }
@@ -221,7 +223,9 @@ int64_t sys_getpid(arch_regs_t* regs) {
     BUG_ON_NULL(_current);
 
     _current->state = TASK_ZOMBIE;
-    _current->exitcode = exitcode;
+    _current->exitcode = (int)exitcode;
+
+    printk("sys_exit %d\n", (int)exitcode);
 
     sched_switch();
 
