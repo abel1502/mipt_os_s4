@@ -33,7 +33,7 @@
         # We have a reliable stack now, enable interrupts.
         sti
 
-        # TODO: construct arch_regs_t on stack and call do_syscall.
+        # Construct arch_regs_t on stack and call do_syscall.
         push 0
         PUSH_REGS
 

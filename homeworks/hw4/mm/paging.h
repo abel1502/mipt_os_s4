@@ -19,6 +19,8 @@
 
 #define ATTR_ALIGN_4096 __attribute__((aligned(4096)))
 
+#define SIGNX_FROM_ADDR(addr) (((uint64_t)(addr) >> 48) & 0xffff)
+#define SIGNB_FROM_ADDR(addr) (((uint64_t)(addr) >> 47) & 0x1)
 #define PML4E_FROM_ADDR(addr) (((uint64_t)(addr) >> 39) & 0x1ff)
 #define PDPE_FROM_ADDR(addr)  (((uint64_t)(addr) >> 30) & 0x1ff)
 #define PDE_FROM_ADDR(addr)   (((uint64_t)(addr) >> 21) & 0x1ff)

@@ -34,9 +34,63 @@ static void* ensure_next_table(pte_t* tbl, size_t idx, uint64_t raw_flags) {
     return next_tbl;
 }
 
+// A helper for translate_addr.
+static inline void *_extract_addr_in_page(pte_t pte, void *vaddr, size_t pgbits) {
+    return VIRT_TO_PHYS(PTE_ADDR(pte)) + (((uint64_t)vaddr) & ((1 << pgbits) - 1));
+}
+
 // translate_address translate virtual address vaddr into physical address and returns virtual address from direct mapping.
 static int translate_address(vmem_t* vm, void* vaddr, void** paddr) {
+    BUG_ON_NULL(vm);
+    BUG_ON_NULL(paddr);
+
     // TODO: implement me.
+
+    uint64_t pdpe = PDPE_FROM_ADDR(vaddr);
+    uint64_t pde = PDE_FROM_ADDR(vaddr);
+    uint64_t pte = PTE_FROM_ADDR(vaddr);
+
+    uint64_t signx = SIGNX_FROM_ADDR(vaddr);
+    uint64_t signb = SIGNB_FROM_ADDR(vaddr);
+
+    if (!((signb == 0 && signx == 0x0000) || 
+          (signb == 1 && signx == 0xffff))) {
+        return -EINVAL;
+    }
+
+    pte_t pml4e = vm->pml4->entries[PML4E_FROM_ADDR(vaddr)];
+    if (!pml4e & PTE_PRESENT) {
+        return -EINVAL;
+    }
+
+    BUG_ON(pml4e & PTE_PAGE_SIZE);
+
+    pte_t pdpe = ((pdpt_t *)PTE_ADDR(pml4e))->entries[PDPE_FROM_ADDR(vaddr)];
+    if (!pdpe & PTE_PRESENT) {
+        return -EINVAL;
+    }
+
+    if (pdpe & PTE_PAGE_SIZE) {
+        *paddr = _extract_addr_in_page(pdpe, vaddr, 9 + 9 + 12);
+        return 0;
+    }
+
+    pte_t pde = ((pgdir_t *)PTE_ADDR(pdpe))->entries[PDE_FROM_ADDR(vaddr)];
+    if (!pde & PTE_PRESENT) {
+        return -EINVAL;
+    }
+
+    if (pde & PTE_PAGE_SIZE) {
+        *paddr = _extract_addr_in_page(pde, vaddr, 9 + 12);
+        return 0;
+    }
+
+    pte_t pte = ((pgtbl_t *)PTE_ADDR(pde))->entries[PTE_FROM_ADDR(vaddr)];
+    if (!pte & PTE_PRESENT) {
+        return -EINVAL;
+    }
+
+    *paddr = _extract_addr_in_page(pte, vaddr, 12);
     return 0;
 }
 

@@ -43,7 +43,7 @@ void kernel_main(early_data_t* early_data) {
     vga_init();
     multiboot_init(early_data->multiboot_info);
     acpi_init();
-    // TODO: Maybe fix memory and rewrite?
+    // TODO: Maybe fix memory accessing and rewrite to include calibration?
     apic_init();
     irq_enable();
 
