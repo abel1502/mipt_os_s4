@@ -34,7 +34,12 @@
         sti
 
         # TODO: construct arch_regs_t on stack and call do_syscall.
+        push 0
+        PUSH_REGS
 
+        mov rdi, rax  // Sysno
+        mov rsi, rsp
+        call do_syscall
 
         # Restore user-space rsp.
         mov rsp, qword ptr [.Lsaved_rsp]
