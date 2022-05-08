@@ -12,6 +12,9 @@
 #define FLAGS_ACTIVE_LOW      2
 #define FLAGS_LEVEL_TRIGGERED 8
 
+// TODO: Compute during calibration. For now, I'll just wing it
+uint64_t ticks_per_sec = 70;
+
 struct ioapic {
     uint32_t reg;
     uint32_t pad[3];

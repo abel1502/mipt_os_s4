@@ -2,6 +2,8 @@
 
 #include "acpi.h"
 
+extern uint64_t ticks_per_sec;
+
 // apic_init initializes APIC.
 void apic_init();
 

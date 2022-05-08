@@ -6,6 +6,7 @@
 #include "mm/vmem.h"
 
 #define MAX_TASK_COUNT (1 << 16)
+// #define MAX_TASK_COUNT 16
 
 typedef enum state {
     TASK_NOT_ALLOCATED = 0,

@@ -9,6 +9,7 @@
 #include "mm/frame_alloc.h"
 #include "mm/obj.h"
 #include "mm/paging.h"
+#include "drivers/apic.h"
 
 static const unsigned TICKS_TILL_SWITCH = 10;
 
@@ -190,7 +191,7 @@ int64_t sys_sleep(arch_regs_t* regs) {
 
     // TODO: Might cause a race condition?
     _current->state = TASK_WAITING;
-    _current->ticks = ms;
+    _current->ticks = ms * ticks_per_sec / 1000;
 
     sched_switch();
 
@@ -204,10 +205,13 @@ int64_t sys_fork(arch_regs_t* parent_regs) {
 
 int64_t sys_getpid(arch_regs_t* regs) {
     UNUSED(regs);
+
+    printk("sys_getpid\n");
+
     return _current->pid;
 }
 
-_Noreturn int64_t sys_exit(arch_regs_t* regs) {
+/*_Noreturn*/ int64_t sys_exit(arch_regs_t* regs) {
     uint64_t exitcode = syscall_arg0(regs);
 
     if (exitcode > __INT_MAX__) {
@@ -220,11 +224,13 @@ _Noreturn int64_t sys_exit(arch_regs_t* regs) {
     _current->exitcode = exitcode;
 
     sched_switch();
+
+    BUG_ON_REACH();
 }
 
 int64_t sys_wait(arch_regs_t* regs) {
-    size_t pid = syscall_arg0(regs);
-    int *status = syscall_arg1(regs);
+    size_t pid = (size_t)syscall_arg0(regs);
+    int *status = (int *)syscall_arg1(regs);
 
     task_t *task = tasks;
     for (; task < tasks + MAX_TASK_COUNT; ++task) {

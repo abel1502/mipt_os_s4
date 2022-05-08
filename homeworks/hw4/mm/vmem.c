@@ -163,7 +163,7 @@ bool vmem_is_user_addr(vmem_t *vmem, void *virt_addr, size_t size) {
     for (vmem_area_t *area = vmem->areas_head; area; area = area->next) {
         const bool contained_fully = (
             area->start <= virt_addr && 
-            virt_addr - area->start <= area->pgcnt * PAGE_SIZE
+            virt_addr + size <= area->start + area->pgcnt * PAGE_SIZE
         );
 
         if (!contained_fully) {

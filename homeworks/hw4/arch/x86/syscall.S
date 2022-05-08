@@ -41,6 +41,9 @@
         mov rsi, rsp
         call do_syscall
 
+        POP_REGS
+        add rsp, 8
+
         # Restore user-space rsp.
         mov rsp, qword ptr [.Lsaved_rsp]
 
