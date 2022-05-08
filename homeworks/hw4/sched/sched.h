@@ -20,6 +20,10 @@ typedef struct task {
     size_t pid;
     state_t state;
     uint64_t flags;
+    // - In TASK_RUNNABLE state, if this is the current process, `ticks` denotes the number of ticks
+    //   left until a forced context switch.
+    // - In TASK_WAITING state, `ticks` denotes the number of ticks left until the requested sleeping
+    //   period of the task is over
     int ticks;
     vmem_t vmem;
     int exitcode;

@@ -10,6 +10,8 @@
 #include "mm/obj.h"
 #include "mm/paging.h"
 
+static const unsigned TICKS_TILL_SWITCH = 10;
+
 task_t tasks[MAX_TASK_COUNT] = {};
 extern void jump_userspace();
 
@@ -56,7 +58,8 @@ static task_t* allocate_task() {
     if (curr_pid == MAX_TASK_COUNT) {
         return NULL;
     }
-    tasks[curr_pid].pid = curr_pid;
+    // To reset the other fields to zero
+    tasks[curr_pid] = (task_t){ .pid = curr_pid, .state = TASK_NOT_ALLOCATED };
     return &tasks[curr_pid];
 }
 
@@ -91,6 +94,14 @@ static int setup_init_task() {
     return 0;
 }
 
+static void release_task(task_t *task) {
+    BUG_ON_NULL(task);
+    BUG_ON(task->state != TASK_ZOMBIE);
+
+    vmem_destroy(&task->vmem);
+    arch_thread_destroy(&task->arch_thread);
+}
+
 task_t* _current = NULL;
 
 static arch_thread_t sched_context = {};
@@ -117,9 +128,15 @@ void sched_start() {
         for (size_t i = 0; i < MAX_TASK_COUNT; i++) {
             if (tasks[i].state == TASK_RUNNABLE) {
                 // We found running task, switch to it.
+                tasks[i].ticks = TICKS_TILL_SWITCH;  // May be redundant
                 sched_switch_to(&tasks[i]);
-                found = 1;
+                found = true;
                 // We've returned to the scheduler.
+
+                // TODO: Release it in sys_wait instead?
+                if (tasks[i].state == TASK_ZOMBIE) {
+                    release_task(&tasks[i]);
+                }
             }
         }
 
@@ -138,16 +155,46 @@ void sched_switch() {
 }
 
 void sched_timer_tick() {
-    if (!_current) {
+    for (task_t *task = tasks; task < tasks + MAX_TASK_COUNT; ++task) {
+        if (task->state != TASK_WAITING) {
+            continue;
+        }
+
+        if (--task->ticks <= 0) {
+            task->state = TASK_RUNNABLE;
+            task->ticks = 0;
+        }
+    }
+
+    if (!_current || _current->state != TASK_RUNNABLE) {
+        // The second case is to prevent a possible race condition between this and sys_sleep
         return;
     }
 
-    // TODO: force process preemption here if needed.
+    // Okay, since ticks is signed
+    if (--_current->ticks <= 0) {
+        _current->ticks = TICKS_TILL_SWITCH;
+        // printk("Switch\n");
+        sched_switch();
+    }
 }
 
-int64_t sys_getpid(arch_regs_t* regs) {
-    UNUSED(regs);
-    return _current->pid;
+int64_t sys_sleep(arch_regs_t* regs) {
+    uint64_t ms = syscall_arg0(regs);
+
+    if (ms > __INT_MAX__) {
+        return -EINVAL;
+    }
+
+    BUG_ON_NULL(_current);
+
+    // TODO: Might cause a race condition?
+    _current->state = TASK_WAITING;
+    _current->ticks = ms;
+
+    sched_switch();
+
+    return 0;
 }
 
 int64_t sys_fork(arch_regs_t* parent_regs) {
@@ -155,8 +202,49 @@ int64_t sys_fork(arch_regs_t* parent_regs) {
     return -EINVAL;
 }
 
-_Noreturn int64_t sys_exit(arch_regs_t* regs) {
-    // TODO: implement me.
+int64_t sys_getpid(arch_regs_t* regs) {
+    UNUSED(regs);
+    return _current->pid;
+}
 
-    BUG_ON_REACH();
+_Noreturn int64_t sys_exit(arch_regs_t* regs) {
+    uint64_t exitcode = syscall_arg0(regs);
+
+    if (exitcode > __INT_MAX__) {
+        return -EINVAL;
+    }
+
+    BUG_ON_NULL(_current);
+
+    _current->state = TASK_ZOMBIE;
+    _current->exitcode = exitcode;
+
+    sched_switch();
+}
+
+int64_t sys_wait(arch_regs_t* regs) {
+    size_t pid = syscall_arg0(regs);
+    int *status = syscall_arg1(regs);
+
+    task_t *task = tasks;
+    for (; task < tasks + MAX_TASK_COUNT; ++task) {
+        if (task->state == TASK_NOT_ALLOCATED) {
+            continue;
+        }
+
+        if (task->pid == pid) {
+            break;
+        }
+    }
+
+    if (task >= tasks + MAX_TASK_COUNT) {
+        return -EINVAL;
+    }
+
+    while (task->state != TASK_ZOMBIE) {
+        // TODO: Optimize?
+        sched_switch();
+    }
+
+    return -EINVAL;
 }
