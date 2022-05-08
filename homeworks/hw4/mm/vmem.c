@@ -36,7 +36,7 @@ static void* ensure_next_table(pte_t* tbl, size_t idx, uint64_t raw_flags) {
 
 // A helper for translate_addr.
 static inline void *_extract_addr_in_page(pte_t pte, void *vaddr, size_t pgbits) {
-    return VIRT_TO_PHYS(PTE_ADDR(pte)) + (((uint64_t)vaddr) & ((1 << pgbits) - 1));
+    return PHYS_TO_VIRT(PTE_ADDR(pte)) + (((uint64_t)vaddr) & ((1 << pgbits) - 1));
 }
 
 // translate_address translate virtual address vaddr into physical address and returns virtual address from direct mapping.
@@ -186,6 +186,7 @@ int vmem_alloc_pages(vmem_t* vm, void* virt_addr, size_t pgcnt, uint64_t flags) 
 
 void vmem_init_from_current(vmem_t* vm) {
     vm->pml4 = PHYS_TO_VIRT(x86_read_cr3());
+    vm->areas_head = NULL;
 }
 
 void vmem_switch_to(vmem_t* vm) {
@@ -194,7 +195,23 @@ void vmem_switch_to(vmem_t* vm) {
 
 
 void vmem_destroy(vmem_t* vm) {
-    // TODO: implement me.
+    BUG_ON_NULL(vm);
+
+    vmem_area_t *next = NULL;
+    for (vmem_area_t *area = vm->areas_head; area; area = next) {
+        next = area->next;
+
+        const void *end = area->start + area->pgcnt;
+        for (void *pg = area->start; pg < end; pg += PAGE_SIZE) {
+            void *paddr = NULL;
+
+            BUG_ON_ERROR(translate_address(vm, pg, &paddr));
+            
+            frame_free(paddr);
+        }
+
+        object_free(&vmem_area_alloc, area);
+    }
 }
 
 int vmem_clone_from_current(vmem_t* dst, vmem_t* curr) {
@@ -208,6 +225,7 @@ int vmem_init_new(vmem_t* vm) {
         return -ENOMEM;
     }
     memset(vm->pml4, '\0', sizeof(pml4_t));
+    vm->areas_head = NULL;
     return 0;
 }
 
@@ -215,6 +233,7 @@ bool vmem_is_user_addr(vmem_t *vmem, void *virt_addr, size_t size) {
     BUG_ON_NULL(vmem);
 
     for (vmem_area_t *area = vmem->areas_head; area; area = area->next) {
+        // TODO: Account for cases of being covered by several pages
         const bool contained_fully = (
             area->start <= virt_addr && 
             virt_addr + size <= area->start + area->pgcnt * PAGE_SIZE
