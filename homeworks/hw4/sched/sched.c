@@ -236,20 +236,11 @@ int64_t sys_wait(arch_regs_t* regs) {
     size_t pid = (size_t)syscall_arg0(regs);
     int *status = (int *)syscall_arg1(regs);
 
-    task_t *task = tasks;
-    for (; task < tasks + MAX_TASK_COUNT; ++task) {
-        if (task->state == TASK_NOT_ALLOCATED) {
-            continue;
-        }
-
-        if (task->pid == pid) {
-            break;
-        }
-    }
-
-    if (task >= tasks + MAX_TASK_COUNT) {
+    if (pid >= MAX_TASK_COUNT) {
         return -EINVAL;
     }
+
+    task_t *task = &tasks[pid];
 
     while (task->state != TASK_ZOMBIE) {
         // TODO: Optimize?
