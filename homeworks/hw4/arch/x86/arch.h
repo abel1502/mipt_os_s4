@@ -35,7 +35,7 @@ typedef struct {
 
 typedef struct {
     uint8_t* kstack_top;
-    uint8_t saved_rsp;
+    uint8_t* saved_rsp;
     context_t context;
 } arch_thread_t;
 

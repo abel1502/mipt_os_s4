@@ -30,22 +30,71 @@
         mov rsp, qword ptr [_current]
         mov rsp, qword ptr [rsp]
 
+        // TODO: Clean up!
+        // To keep it accessible
+        push qword ptr [.Lsaved_rsp]
+        // Used later as scratch registers
+        push r14
+        push r15
+
         # We have a reliable stack now, enable interrupts.
         sti
 
-        # Construct arch_regs_t on stack and call do_syscall.
-        push 0
-        PUSH_REGS
+        // Store saved_rsp in _current as well
+        mov r14, qword ptr [.Lsaved_rsp]
+        mov r15, qword ptr [_current]
+        mov qword ptr [r15 + 8], r14
 
-        mov rdi, rax  // Sysno
+        // This now points to the following array: [saved_r15, saved_r14, saved_rsp]
+        lea r14, [rsp]
+
+        # Construct arch_regs_t on stack and call do_syscall.
+        // ss
+        mov r15, ss
+        push r15
+        // rsp
+        push qword ptr [r14 + 16]
+        // rflags
+        push r11
+        // cs
+        mov r15, cs
+        push r15
+        // rip
+        push rcx
+        // errcode
+        push 0
+        // regs
+        PUSH_REGS
+        // + fix r14 and r15 in there
+        mov r15, qword ptr [r14 + 8]
+        mov qword ptr [rsp + 8], r15  // r14
+        mov r15, qword ptr [r14 + 0]
+        mov qword ptr [rsp + 0], r15  // r15
+
+        // arg: sysno
+        mov rdi, rax
+        // arg: regs
         mov rsi, rsp
         call do_syscall
 
-        POP_REGS
+        // regs
+        POP_REGS // From now on, r14 and r15 are back to their old values
+        // errcode
+        add rsp, 8
+        // rip
+        pop rcx
+        // cs  // I assume it wasn't corrupted
+        add rsp, 8
+        // rflags
+        pop r11
+        // rsp
+        // ss  // Same as cs
         add rsp, 8
 
+        pop r15
+        pop r14
         # Restore user-space rsp.
-        mov rsp, qword ptr [.Lsaved_rsp]
+        mov rsp, qword ptr [rsp]
 
         sysretq
 
