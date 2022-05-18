@@ -98,6 +98,7 @@ static int setup_init_task() {
 static void release_task(task_t *task) {
     BUG_ON_NULL(task);
     BUG_ON(task->state != TASK_ZOMBIE);
+    task->state = TASK_NOT_ALLOCATED;
 
     vmem_destroy(&task->vmem);
     arch_thread_destroy(&task->arch_thread);
