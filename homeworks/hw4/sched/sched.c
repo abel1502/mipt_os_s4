@@ -242,6 +242,7 @@ int64_t sys_wait(arch_regs_t* regs) {
     }
 
     task_t *task = &tasks[pid];
+    BUG_ON(task->pid != pid);
 
     while (task->state != TASK_ZOMBIE) {
         // TODO: Optimize?
