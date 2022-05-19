@@ -28,7 +28,6 @@ void vga_putentryat(char c, u8 color, u64 row, u64 col) {
     vga_buffer[vga_index(row, col)] = vga_entry(c, color);
 }
 
-// TODO: vga_newline_and_return should support terminal scrolling.
 static void vga_newline_and_return() {
     vga_row++;
     if (vga_row == VGA_HEIGHT) {

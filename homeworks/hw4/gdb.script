@@ -1,0 +1,14 @@
+target remote :1234
+set confirm off
+set pagination off
+symbol-file kernel.sym
+layout src
+focus cmd
+b __panic
+# b vmem_map_page
+# b vmem_pf_handler
+# b vmem_free_pages
+# b sched_start
+b main
+b sys_getpid
+c

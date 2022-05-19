@@ -1,4 +1,4 @@
-#include "gdt.h"
+#include "arch/x86/gdt.h"
 #include "mm/paging.h"
 
 .intel_syntax noprefix
@@ -6,8 +6,9 @@
 # Section .early.bss contains zero-filled data. It doesn't appear in ELF file, but filled during image load.
 .section .early.bss,"wa",@nobits
     .align PAGE_SIZE
-    .Lbootstrap_stack:
+    .Lbootstrap_stack_bottom:
         .zero 4*PAGE_SIZE
+    bootstrap_stack_top:
 
     .global early_pml4
     .type early_pml4, @object
@@ -34,11 +35,18 @@
         # 1: 64-bit kernel code segment.
         .long 0xFFFF
         # (0xF << 16) fills base 31:24.
-        .long GDT_GRANULARITY | GDT_LONG | GDT_PRESENT | GDT_SYSTEM | (1<<11) | GDT_READ | (0xF << 16)
+        .long GDT_GRANULARITY | GDT_LONG | GDT_PRESENT | GDT_SYSTEM | GDT_CODE_SEG | GDT_READ | (0xF << 16)
 
     .Lgdt64_ptr:
         .word . - .Lgdt64
-        .long .Lgdt64
+        .quad .Lgdt64
+
+.macro CLEAR start size
+    mov esi, \start
+    mov al, 0
+    mov ecx, \size
+    rep stosb
+.endm
 
 .section .early.text
     # _early_entry_point is an entry point of our kernel, execution after bootloader starts here.
@@ -52,6 +60,9 @@
 
         # To enable long mode, we need to setup basic paging.
         # Here we setup identity mapping for the first four gigabytes.
+
+        CLEAR early_pml4 PAGE_SIZE
+        CLEAR .Learly_pdpt PAGE_SIZE
 
         # PML4[0] = PDPT_addr | FLAG_PRESENT
         lea edi, early_pml4
@@ -103,7 +114,7 @@
         mov ss, ax
 
         # Setup booststrap stack and call kernel_main.
-        lea rsp, .Lbootstrap_stack
+        lea rsp, bootstrap_stack_top
         call early_start
 
     .extern kernel_main
@@ -117,14 +128,9 @@
         mov rbx, KERNEL_DIRECT_PHYS_MAPPING_START
 
         # Reset to the same stack, but use its virtual address instead.
-        lea rsp, .Lbootstrap_stack
+        lea rsp, bootstrap_stack_top
         add rsp, rbx
-
-        # Fix GDT pointer.
-        lea rax, .Lgdt64
-        add rax, rbx
-        mov qword ptr [.Lgdt64_ptr + 2], rax
-        lgdt .Lgdt64_ptr
+        mov rbp, rsp
 
         # If kernel_main occasionally returns, kernel_main_return will be called.
         lea rax, kernel_main_return
